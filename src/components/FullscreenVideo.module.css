@@ -1,0 +1,10 @@
+
+.fullscreenVideo {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  z-index: -100;
+  background-size: cover;
+  object-fit: cover;
+  object-position: center;
+}
