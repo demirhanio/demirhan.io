@@ -1,0 +1,135 @@
+.cta {
+  padding: 120px 32px;
+  background: #1A1A1A;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  border-top: 8px solid #F3F3F3;
+}
+
+/* Brutalist grid pattern */
+.cta::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    linear-gradient(90deg, rgba(243, 243, 243, 0.05) 1px, transparent 1px),
+    linear-gradient(rgba(243, 243, 243, 0.05) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+}
+
+/* Large brutalist corner elements */
+.cta::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 200px;
+  height: 200px;
+  background: linear-gradient(-45deg, 
+    transparent 0%, 
+    transparent 40%, 
+    rgba(243, 243, 243, 0.03) 40%, 
+    rgba(243, 243, 243, 0.03) 60%, 
+    transparent 60%
+  );
+  pointer-events: none;
+}
+
+.container {
+  position: relative;
+  max-width: 900px;
+  margin: 0 auto;
+  z-index: 2;
+}
+
+.headline {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(28px, 5vw, 56px);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.05em;
+  color: #F3F3F3;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  position: relative;
+}
+
+/* Add brutalist accent to headline */
+.headline::before {
+  content: '';
+  position: absolute;
+  top: -12px;
+  left: -24px;
+  width: 8px;
+  height: 120%;
+  background: #F3F3F3;
+  transform: skew(-15deg);
+}
+
+.ctaButton {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  padding: 20px 48px;
+  background: transparent;
+  color: #F3F3F3;
+  border: 3px solid #F3F3F3;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  text-transform: uppercase;
+  margin-top: 32px;
+  clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 100%, 20px 100%);
+}
+
+.ctaButton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: #F3F3F3;
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: -1;
+}
+
+.ctaButton:hover {
+  color: #1A1A1A;
+  transform: translateY(-3px) translateX(3px);
+  box-shadow: -6px 6px 0 rgba(243, 243, 243, 0.2);
+}
+
+.ctaButton:hover::before {
+  left: 0;
+}
+
+.ctaButton:active {
+  transform: translateY(-1px) translateX(1px);
+  box-shadow: -3px 3px 0 rgba(243, 243, 243, 0.2);
+}
+
+@media (max-width: 768px) {
+  .cta {
+    padding: 80px 24px;
+  }
+  
+  .headline::before {
+    width: 6px;
+    left: -16px;
+    top: -8px;
+  }
+  
+  .ctaButton {
+    padding: 18px 32px;
+    font-size: 14px;
+    clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 100%, 15px 100%);
+  }
+}

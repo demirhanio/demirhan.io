@@ -1,0 +1,62 @@
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: rgba(243, 243, 243, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid #DADADA;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #1A1A1A;
+}
+
+.nav {
+  display: flex;
+  gap: 48px;
+}
+
+.navLink {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  color: #1A1A1A;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.navLink::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: #1A1A1A;
+  transition: width 0.3s ease;
+}
+
+.navLink:hover {
+  font-weight: 700;
+}
+
+.navLink:hover::after {
+  width: 100%;
+}
