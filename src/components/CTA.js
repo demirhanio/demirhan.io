@@ -1,9 +1,7 @@
 import React from 'react';
 import styles from './CTA.module.css';
 import { handleConsultationClick } from '../utils/consultation';
-
 const CTA = () => {
-
   return (
     <section id="contact" className={styles.cta}>
       <div className={styles.container}>
@@ -18,5 +16,4 @@ const CTA = () => {
     </section>
   );
 };
-
 export default CTA;

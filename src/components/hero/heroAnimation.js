@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-
 export class HeroAnimation {
   constructor(mountRef, mouseRef) {
     this.mountRef = mountRef;
@@ -7,377 +6,341 @@ export class HeroAnimation {
     this.scene = null;
     this.renderer = null;
     this.camera = null;
-    this.nodes = [];
-    this.edgePool = [];
-    this.activeEdges = [];
-    this.yellowMarks = [];
     this.animationId = null;
-    this.frameCount = 0;
+    this.tunnelSegments = [];
     this.clock = new THREE.Clock();
+    this.frameCount = 0;
+    this.tunnelSpeed = 3; 
+    this.isScrolling = false;
+    this.scrollTimeout = null;
+    this.animationIntensity = 0; 
+    this.targetIntensity = 0;
+    this.introAnimationPlayed = false;
+    this.lastScrollTime = 0;
   }
-
   init() {
     this.setupScene();
-    this.createNodes();
-    this.createEdgePool();
-    this.createYellowMarkGeometry();
+    this.createTunnelGeometry();
     this.setupEventListeners();
     this.animate();
+    this.playIntroAnimation();
   }
-
+  playIntroAnimation() {
+    
+    this.targetIntensity = 1;
+    this.introAnimationPlayed = true;
+    
+    
+    setTimeout(() => {
+      if (!this.isScrolling) {
+        this.targetIntensity = 0;
+      }
+    }, 200);
+  }
   setupScene() {
-    // Scene setup
+    
     this.scene = new THREE.Scene();
-
-    // Camera setup (orthographic for 2D feel)
-    this.camera = new THREE.OrthographicCamera(
-      window.innerWidth / -2,
-      window.innerWidth / 2,
-      window.innerHeight / 2,
-      window.innerHeight / -2,
-      1,
+    this.scene.background = new THREE.Color(0x0a0a0a); 
+    
+    this.camera = new THREE.PerspectiveCamera(
+      75, 
+      window.innerWidth / window.innerHeight,
+      0.1,
       1000
     );
-    this.camera.position.z = 500;
-
-    // Renderer setup
+    this.camera.position.z = 5;
+    
     this.renderer = new THREE.WebGLRenderer({ 
-      alpha: true, 
-      antialias: true
+      alpha: false, 
+      antialias: false
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); 
     this.mountRef.current.appendChild(this.renderer.domElement);
-    
-    // Create multiple scenes for different blur levels
-    this.blurScenes = [];
-    this.blurRenderers = [];
-    
-    for (let i = 0; i < 4; i++) { // 4 different blur levels
-      const blurScene = new THREE.Scene();
-      const blurRenderer = new THREE.WebGLRenderer({ 
-        alpha: true, 
-        antialias: true
-      });
-      blurRenderer.setSize(window.innerWidth, window.innerHeight);
-      blurRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-      
-      const canvas = blurRenderer.domElement;
-      canvas.style.position = 'absolute';
-      canvas.style.top = '0';
-      canvas.style.left = '0';
-      canvas.style.pointerEvents = 'none';
-      canvas.style.filter = `blur(${0.5 + i * 0.6}px)`;
-      
-      this.mountRef.current.appendChild(canvas);
-      this.blurScenes.push(blurScene);
-      this.blurRenderers.push(blurRenderer);
-    }
   }
-
-  createNodes() {
-    const nodeCount = 30; // Increased for more density
+  createTunnelGeometry() {
+    const segmentCount = 100; 
+    const segmentSpacing = 1; 
     
-    for (let i = 0; i < nodeCount; i++) {
-      const baseSize = 2;
-      const randomSize = baseSize + Math.random() * 3; // Smaller, more precise dots
-      const nodeGeometry = new THREE.CircleGeometry(randomSize, 6); // Fewer segments for sharper edges
-      const nodeMaterial = new THREE.MeshBasicMaterial({ 
-        color: 0xcccccc, // Light gray color
-        transparent: true,
-        opacity: 0.9
-      });
+    for (let i = 0; i < segmentCount; i++) {
       
-      const node = new THREE.Mesh(nodeGeometry, nodeMaterial);
-      node.position.x = (Math.random() - 0.5) * window.innerWidth;
-      node.position.y = (Math.random() - 0.5) * window.innerHeight;
-      node.position.z = 0;
+      const segmentGroup = new THREE.Group();
       
-      // Determine blur level based on size and add to appropriate scene
-      const blurLevel = Math.floor((randomSize - 2) / 0.75); // 0-3 blur levels
-      const clampedBlurLevel = Math.min(Math.max(blurLevel, 0), 3);
       
-      // Store velocity for movement
-      node.userData = {
-        velocity: new THREE.Vector2(
-          (Math.random() - 0.5) * 0.1, // Slower, more deliberate movement
-          (Math.random() - 0.5) * 0.1
-        ),
-        originalPosition: node.position.clone(),
-        pulseOffset: Math.random() * Math.PI * 2,
-        baseSize: randomSize,
-        explosionVelocity: new THREE.Vector2(0, 0),
-        isExploding: false,
-        markedForExplosion: false,
-        blurLevel: clampedBlurLevel
+      this.createTunnelWalls(segmentGroup, i);
+      
+      
+      segmentGroup.position.z = -i * segmentSpacing;
+      segmentGroup.userData = {
+        originalZ: segmentGroup.position.z,
+        segmentIndex: i
       };
       
-      this.blurScenes[clampedBlurLevel].add(node);
-      this.nodes.push(node);
+      this.scene.add(segmentGroup);
+      this.tunnelSegments.push(segmentGroup);
     }
   }
-
-  createEdgePool() {
-    const maxEdges = 60; // More edges for denser connections
+  createTunnelWalls(group, segmentIndex) {
     
-    for (let i = 0; i < maxEdges; i++) {
-      const geometry = new THREE.BufferGeometry();
-      const positions = new Float32Array(6);
-      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const tunnelRadius = 4;
+    const lineCount = 24; 
+    
+    
+    for (let i = 0; i < lineCount; i++) {
+      const angle = (i / lineCount) * Math.PI * 2;
+      const x = Math.cos(angle) * tunnelRadius;
+      const y = Math.sin(angle) * tunnelRadius;
       
-      const material = new THREE.LineBasicMaterial({
-        color: 0x1a1a1a,
+      
+      const lineGeometry = new THREE.PlaneGeometry(0.015, 2);
+      
+      
+      const colorIntensity = 0.3 + (Math.sin(segmentIndex * 0.15 + i * 0.4) * 0.4);
+      const material = new THREE.MeshBasicMaterial({ 
+        color: new THREE.Color(colorIntensity * 0.8, colorIntensity * 0.9, colorIntensity), 
         transparent: true,
-        opacity: 0
+        opacity: 0.6
       });
       
-      const line = new THREE.Line(geometry, material);
-      this.scene.add(line); // Keep edges in main scene
-      this.edgePool.push(line);
+      const line = new THREE.Mesh(lineGeometry, material);
+      line.position.set(x, y, 0);
+      line.lookAt(0, 0, 0); 
+      group.add(line);
+    }
+    
+    
+    if (segmentIndex % 3 === 0) {
+      this.addTunnelRings(group, segmentIndex);
+    }
+    
+    
+    if (segmentIndex % 6 === 0) {
+      this.addRadialStreaks(group, segmentIndex);
     }
   }
-
-  createYellowMarkGeometry() {
-    // Brutalist square marks instead of circles
-    this.markGeometry = new THREE.PlaneGeometry(12, 12); // Square marks
-    this.markMaterial = new THREE.MeshBasicMaterial({ 
-      color: 0x8a8a6b, // Grayish yellow/olive color
+  addNaturalDetails(group, baseMaterial) {
+    
+    const detailMaterial = new THREE.MeshBasicMaterial({ 
+      color: new THREE.Color(0.4, 0.5, 0.3), 
       transparent: true,
-      opacity: 0.7
+      opacity: 0.4
     });
-  }
-
-  setupEventListeners() {
-    // Mouse movement handler
-    let mouseUpdateCounter = 0;
-    this.handleMouseMove = (event) => {
-      mouseUpdateCounter++;
-      if (mouseUpdateCounter % 2 === 0) {
-        this.mouseRef.current.x = (event.clientX / window.innerWidth) * 2 - 1;
-        this.mouseRef.current.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    
+    
+    const crossH = new THREE.PlaneGeometry(3, 0.2); 
+    const crossV = new THREE.PlaneGeometry(0.2, 3);
+    
+    const crossHMesh = new THREE.Mesh(crossH, detailMaterial);
+    const crossVMesh = new THREE.Mesh(crossV, detailMaterial);
+    
+    crossHMesh.position.z = 0.08;
+    crossVMesh.position.z = 0.08;
+    
+    
+    crossHMesh.rotation.z = 0.05;
+    crossVMesh.rotation.z = 0.05;
+    
+    group.add(crossHMesh);
+    group.add(crossVMesh);
+    
+    
+    const circleMaterial = new THREE.MeshBasicMaterial({ 
+      color: new THREE.Color(0.6, 0.45, 0.35), 
+      transparent: true,
+      opacity: 0.3
+    });
+    
+    for (let x = -2.5; x <= 2.5; x += 5) {
+      for (let y = -1.5; y <= 1.5; y += 3) {
+        const circleGeometry = new THREE.CircleGeometry(0.4, 8); 
+        const circleMesh = new THREE.Mesh(circleGeometry, circleMaterial);
+        circleMesh.position.set(x, y, 0.06);
+        group.add(circleMesh);
       }
+    }
+    
+    
+    const branchMaterial = new THREE.MeshBasicMaterial({ 
+      color: new THREE.Color(0.35, 0.25, 0.2), 
+      transparent: true,
+      opacity: 0.2
+    });
+    
+    for (let i = 0; i < 3; i++) {
+      const branchGeometry = new THREE.PlaneGeometry(4, 0.1);
+      const branchMesh = new THREE.Mesh(branchGeometry, branchMaterial);
+      branchMesh.position.z = 0.04;
+      branchMesh.rotation.z = (Math.PI / 6) * i + Math.random() * 0.2; 
+      branchMesh.position.x = (Math.random() - 0.5) * 2;
+      branchMesh.position.y = (Math.random() - 0.5) * 2;
+      group.add(branchMesh);
+    }
+  }
+  addTunnelRings(group, segmentIndex) {
+    
+    const ringRadius = 4;
+    const ringSegments = 32;
+    const ringGeometry = new THREE.RingGeometry(ringRadius - 0.1, ringRadius + 0.1, ringSegments);
+    
+    const ringMaterial = new THREE.MeshBasicMaterial({ 
+      color: new THREE.Color(0.6, 0.7, 0.9), 
+      transparent: true,
+      opacity: 0.3
+    });
+    
+    const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+    ring.position.z = 0.1;
+    group.add(ring);
+  }
+  addRadialStreaks(group, segmentIndex) {
+    
+    const streakCount = 8;
+    
+    for (let i = 0; i < streakCount; i++) {
+      const angle = (i / streakCount) * Math.PI * 2;
+      const length = 3 + Math.random() * 2;
+      
+      const streakGeometry = new THREE.PlaneGeometry(0.01, length);
+      const streakMaterial = new THREE.MeshBasicMaterial({ 
+        color: new THREE.Color(0.9, 0.9, 1.0), 
+        transparent: true,
+        opacity: 0.4
+      });
+      
+      const streak = new THREE.Mesh(streakGeometry, streakMaterial);
+      streak.position.set(
+        Math.cos(angle) * length * 0.5,
+        Math.sin(angle) * length * 0.5,
+        0.05
+      );
+      streak.rotation.z = angle + Math.PI / 2;
+      group.add(streak);
+    }
+  }
+  setupEventListeners() {
+    
+    this.handleMouseMove = (event) => {
+      const mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+      const mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+      
+      
+      this.mouseRef.current.x = mouseX;
+      this.mouseRef.current.y = mouseY;
     };
-
+    
+    this.handleScroll = (event) => {
+      const currentTime = Date.now();
+      this.lastScrollTime = currentTime;
+      
+      
+      this.isScrolling = true;
+      this.targetIntensity = 1;
+      
+      
+      if (this.scrollTimeout) {
+        clearTimeout(this.scrollTimeout);
+      }
+      
+      
+      this.scrollTimeout = setTimeout(() => {
+        this.isScrolling = false;
+        this.targetIntensity = 0;
+      }, 200); 
+    };
     this.handleResize = () => {
-      this.camera.left = window.innerWidth / -2;
-      this.camera.right = window.innerWidth / 2;
-      this.camera.top = window.innerHeight / 2;
-      this.camera.bottom = window.innerHeight / -2;
+      this.camera.aspect = window.innerWidth / window.innerHeight;
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(window.innerWidth, window.innerHeight);
     };
-
     window.addEventListener('mousemove', this.handleMouseMove);
+    window.addEventListener('scroll', this.handleScroll, { passive: true });
     window.addEventListener('resize', this.handleResize);
   }
-
   animate = () => {
     this.frameCount++;
     const elapsedTime = this.clock.getElapsedTime();
     
-    // Mouse position in world coordinates
-    const mouseWorld = new THREE.Vector3(
-      this.mouseRef.current.x * window.innerWidth / 2,
-      this.mouseRef.current.y * window.innerHeight / 2,
-      0
-    );
-
-    // Check for cursor-triggered explosions
-    if (this.frameCount % 15 === 0) { // Less frequent checks for more deliberate explosions
-      this.checkCursorExplosion(mouseWorld);
+    
+    this.updateAnimationIntensity();
+    
+    
+    if (this.animationIntensity > 0) {
+      this.updateTunnel(elapsedTime);
+      this.updateCamera();
     }
-
-    this.updateNodes(elapsedTime, mouseWorld);
-    this.updateEdges(mouseWorld);
-
-    // Render all blur scenes
-    this.blurScenes.forEach((blurScene, index) => {
-      this.blurRenderers[index].render(blurScene, this.camera);
-    });
     
     this.renderer.render(this.scene, this.camera);
     this.animationId = requestAnimationFrame(this.animate);
   }
-
-  updateNodes(elapsedTime, mouseWorld) {
-    this.nodes.forEach((node) => {
-      if (node.userData.isExploding) {
-        // Explosion behavior - more linear and aggressive
-        node.position.x += node.userData.explosionVelocity.x;
-        node.position.y += node.userData.explosionVelocity.y;
-        
-        // Sharp fade out
-        node.material.opacity *= 0.92;
-        
-        // Maintain size during explosion for brutalist effect
-        node.scale.setScalar(1);
-        
-        // Remove node when completely faded
-        if (node.material.opacity < 0.01) {
-          this.blurScenes[node.userData.blurLevel].remove(node);
-          const index = this.nodes.indexOf(node);
-          if (index > -1) {
-            this.nodes.splice(index, 1);
-          }
-        }
-        
-        return;
-      }
-      
-      // Rigid, grid-like movement
-      node.position.x += node.userData.velocity.x;
-      node.position.y += node.userData.velocity.y;
-
-      // Hard boundary checks
-      if (Math.abs(node.position.x) > window.innerWidth / 2) {
-        node.userData.velocity.x *= -1; // Hard bounce
-        node.position.x = Math.sign(node.position.x) * window.innerWidth / 2;
-      }
-      if (Math.abs(node.position.y) > window.innerHeight / 2) {
-        node.userData.velocity.y *= -1; // Hard bounce
-        node.position.y = Math.sign(node.position.y) * window.innerHeight / 2;
-      }
-
-      // Magnetic mouse attraction - more aggressive
-      const distanceToMouse = node.position.distanceTo(mouseWorld);
-      if (distanceToMouse < 250 && distanceToMouse > 15) {
-        const force = (250 - distanceToMouse) / 250;
-        const direction = new THREE.Vector3()
-          .subVectors(mouseWorld, node.position)
-          .normalize();
-        
-        // Stronger attraction
-        node.position.x += direction.x * force * 1.2;
-        node.position.y += direction.y * force * 1.2;
-      }
-
-      // Minimal pulsing - more static brutalist feel
-      if (this.frameCount % 5 === 0) {
-        const pulse = Math.sin(elapsedTime * 0.5 + node.userData.pulseOffset) * 0.05 + 0.95;
-        node.material.opacity = pulse * 0.9; // Higher opacity
-        node.scale.setScalar(1); // Keep constant size
-      }
-    });
-  }
-
-  updateEdges(mouseWorld) {
-    if (this.frameCount % 3 === 0) { // Update edges less frequently
-      // Reset all edges
-      this.activeEdges.forEach(edge => {
-        edge.material.opacity = 0;
-      });
-      this.activeEdges.length = 0;
-
-      let edgeIndex = 0;
-      
-      for (let i = 0; i < this.nodes.length && edgeIndex < this.edgePool.length; i++) {
-        for (let j = i + 1; j < this.nodes.length && edgeIndex < this.edgePool.length; j++) {
-          const distance = this.nodes[i].position.distanceTo(this.nodes[j].position);
-          
-          // Check if either node is near mouse
-          const distToMouseA = this.nodes[i].position.distanceTo(mouseWorld);
-          const distToMouseB = this.nodes[j].position.distanceTo(mouseWorld);
-          const nearMouse = distToMouseA < 180 || distToMouseB < 180;
-          
-          const maxDistance = nearMouse ? 160 : 80; // Shorter, more precise connections
-          
-          if (distance < maxDistance) {
-            const edge = this.edgePool[edgeIndex];
-            const positions = edge.geometry.attributes.position.array;
-            
-            // Update positions
-            positions[0] = this.nodes[i].position.x;
-            positions[1] = this.nodes[i].position.y;
-            positions[2] = this.nodes[i].position.z;
-            positions[3] = this.nodes[j].position.x;
-            positions[4] = this.nodes[j].position.y;
-            positions[5] = this.nodes[j].position.z;
-            
-            edge.geometry.attributes.position.needsUpdate = true;
-            
-            // Sharp opacity transitions
-            const opacity = nearMouse 
-              ? (1 - distance / maxDistance) * 0.5
-              : (1 - distance / maxDistance) * 0.2;
-            
-            edge.material.opacity = opacity;
-            this.activeEdges.push(edge);
-            edgeIndex++;
-          }
-        }
-      }
+  updateAnimationIntensity() {
+    
+    
+    const lerpSpeed = (this.clock.getElapsedTime() < 2) ? 0.15 : 0.1;
+    this.animationIntensity += (this.targetIntensity - this.animationIntensity) * lerpSpeed;
+    
+    
+    if (Math.abs(this.animationIntensity - this.targetIntensity) < 0.001) {
+      this.animationIntensity = this.targetIntensity;
     }
   }
-
-  checkCursorExplosion(mousePos) {
-    // Find nodes close to cursor
-    const nearbyNodes = this.nodes.filter(node => 
-      !node.userData.isExploding && 
-      node.position.distanceTo(mousePos) < 80 // Tighter explosion radius
-    );
-
-    if (nearbyNodes.length < 4) return; // Need more nodes for brutalist effect
-
-    // Check if these nodes are connected
-    const connectedNodes = [];
-    nearbyNodes.forEach(nodeA => {
-      nearbyNodes.forEach(nodeB => {
-        if (nodeA !== nodeB) {
-          const distance = nodeA.position.distanceTo(nodeB.position);
-          if (distance < 100) {
-            if (!connectedNodes.includes(nodeA)) connectedNodes.push(nodeA);
-            if (!connectedNodes.includes(nodeB)) connectedNodes.push(nodeB);
-          }
+  updateTunnel(elapsedTime) {
+    
+    const intensity = this.animationIntensity;
+    
+    
+    this.tunnelSegments.forEach((segment) => {
+      
+      segment.position.z += this.tunnelSpeed * 0.05 * intensity;
+      
+      
+      if (segment.position.z > 5) {
+        segment.position.z = segment.userData.originalZ;
+      }
+      
+      
+      segment.rotation.z = Math.sin(elapsedTime * 1.2 + segment.userData.segmentIndex * 0.3) * 0.05 * intensity;
+      
+      
+      segment.position.x = Math.sin(elapsedTime * 1.5 + segment.userData.segmentIndex) * 0.1 * intensity;
+      segment.position.y = Math.cos(elapsedTime * 1.2 + segment.userData.segmentIndex) * 0.08 * intensity;
+      
+      
+      const distance = Math.abs(segment.position.z);
+      const maxDistance = 100;
+      const distanceOpacity = Math.max(0.1, 1 - (distance / maxDistance));
+      
+      
+      segment.children.forEach((child) => {
+        if (child.material) {
+          
+          child.material.opacity = distanceOpacity * 0.5 * intensity;
         }
       });
     });
-
-    // Trigger explosion with lower probability for more impact
-    if (connectedNodes.length >= 4 && Math.random() > 0.985) { // 1.5% chance
-      this.triggerCursorExplosion(connectedNodes);
-    }
   }
-
-  triggerCursorExplosion(nodesToExplode) {
-    nodesToExplode.forEach((node) => {
-      // Create brutalist square mark at node position
-      const mark = new THREE.Mesh(this.markGeometry, this.markMaterial.clone());
-      mark.position.copy(node.position);
-      mark.rotation.z = Math.random() * Math.PI; // Random rotation for brutalist feel
-      this.scene.add(mark);
-      this.yellowMarks.push(mark);
-      
-      // Longer-lasting marks
-      setTimeout(() => {
-        const fadeInterval = setInterval(() => {
-          mark.material.opacity *= 0.98; // Slower fade
-          if (mark.material.opacity < 0.01) {
-            this.scene.remove(mark);
-            const index = this.yellowMarks.indexOf(mark);
-            if (index > -1) this.yellowMarks.splice(index, 1);
-            clearInterval(fadeInterval);
-          }
-        }, 100); // Slower fade interval
-      }, 500); // Wait longer before fading
-      
-      // Set node to exploding
-      node.userData.isExploding = true;
-      
-      // Calculate explosion direction from cursor - more aggressive
-      const direction = new THREE.Vector2(
-        node.position.x - this.mouseRef.current.x * window.innerWidth / 2,
-        node.position.y - this.mouseRef.current.y * window.innerHeight / 2
-      ).normalize();
-      
-      // Set explosion velocity - more forceful
-      const explosionForce = 4 + Math.random() * 6;
-      node.userData.explosionVelocity = direction.multiplyScalar(explosionForce);
-    });
+  updateCamera() {
+    
+    const intensity = this.animationIntensity;
+    
+    
+    const targetX = this.mouseRef.current.x * 0.3 * intensity;
+    const targetY = this.mouseRef.current.y * 0.3 * intensity;
+    
+    
+    this.camera.position.x += (targetX - this.camera.position.x) * 0.05;
+    this.camera.position.y += (targetY - this.camera.position.y) * 0.05;
+    
+    
+    this.camera.lookAt(targetX * 0.5, targetY * 0.5, -10 * intensity);
   }
-
   dispose() {
     window.removeEventListener('mousemove', this.handleMouseMove);
+    window.removeEventListener('scroll', this.handleScroll);
     window.removeEventListener('resize', this.handleResize);
+    
+    if (this.scrollTimeout) {
+      clearTimeout(this.scrollTimeout);
+    }
     
     if (this.animationId) {
       cancelAnimationFrame(this.animationId);
@@ -387,30 +350,14 @@ export class HeroAnimation {
       this.mountRef.current.removeChild(this.renderer.domElement);
     }
     
-    // Dispose blur renderers
-    this.blurRenderers.forEach((blurRenderer, index) => {
-      if (this.mountRef.current && blurRenderer.domElement) {
-        this.mountRef.current.removeChild(blurRenderer.domElement);
-      }
-      blurRenderer.dispose();
+    
+    this.tunnelSegments.forEach(segment => {
+      segment.children.forEach(child => {
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) child.material.dispose();
+      });
     });
     
     this.renderer.dispose();
-    
-    // Dispose geometries and materials
-    this.nodes.forEach(node => {
-      node.geometry.dispose();
-      node.material.dispose();
-    });
-    
-    this.edgePool.forEach(edge => {
-      edge.geometry.dispose();
-      edge.material.dispose();
-    });
-
-    this.yellowMarks.forEach(mark => {
-      mark.geometry.dispose();
-      mark.material.dispose();
-    });
   }
 }

@@ -1,7 +1,6 @@
 import React from 'react';
 import styles from './Services.module.css';
 import { handleConsultationClick } from '../utils/consultation';
-
 const services = [
   {
     id: 1,
@@ -28,13 +27,12 @@ const services = [
     number: '04'
   }
 ];
-
 const Services = () => {
   return (
     <section id="services" className={styles.services}>
       <div className={styles.container}>
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>LET'S TALK ABOUT</h2>
+          <h2 className={styles.sectionTitle}>LET&apos;S TALK ABOUT</h2>
           <div className={styles.titleLine}></div>
         </div>
         <div className={styles.servicesList}>
@@ -53,5 +51,4 @@ const Services = () => {
     </section>
   );
 };
-
 export default Services;

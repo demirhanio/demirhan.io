@@ -6,7 +6,6 @@
   overflow: hidden;
   border-top: 8px solid #F3F3F3;
 }
-
 /* Brutalist grid pattern */
 .cta::before {
   content: '';
@@ -21,7 +20,6 @@
   background-size: 60px 60px;
   pointer-events: none;
 }
-
 /* Large brutalist corner elements */
 .cta::after {
   content: '';
@@ -39,14 +37,12 @@
   );
   pointer-events: none;
 }
-
 .container {
   position: relative;
   max-width: 900px;
   margin: 0 auto;
   z-index: 2;
 }
-
 .headline {
   font-family: 'Space Grotesk', sans-serif;
   font-size: clamp(28px, 5vw, 56px);
@@ -58,7 +54,6 @@
   text-transform: uppercase;
   position: relative;
 }
-
 /* Add brutalist accent to headline */
 .headline::before {
   content: '';
@@ -70,7 +65,6 @@
   background: #F3F3F3;
   transform: skew(-15deg);
 }
-
 .ctaButton {
   font-family: 'Space Grotesk', sans-serif;
   font-size: 16px;
@@ -88,7 +82,6 @@
   margin-top: 32px;
   clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 100%, 20px 100%);
 }
-
 .ctaButton::before {
   content: '';
   position: absolute;
@@ -100,22 +93,18 @@
   transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: -1;
 }
-
 .ctaButton:hover {
   color: #1A1A1A;
   transform: translateY(-3px) translateX(3px);
   box-shadow: -6px 6px 0 rgba(243, 243, 243, 0.2);
 }
-
 .ctaButton:hover::before {
   left: 0;
 }
-
 .ctaButton:active {
   transform: translateY(-1px) translateX(1px);
   box-shadow: -3px 3px 0 rgba(243, 243, 243, 0.2);
 }
-
 @media (max-width: 768px) {
   .cta {
     padding: 80px 24px;

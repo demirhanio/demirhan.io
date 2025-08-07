@@ -1,7 +1,5 @@
-
 import React from 'react';
 import styles from './FullscreenVideo.module.css';
-
 const FullscreenVideo = ({ videoSrc }) => {
   return (
     <video className={styles.fullscreenVideo} autoPlay loop muted>
@@ -10,5 +8,4 @@ const FullscreenVideo = ({ videoSrc }) => {
     </video>
   );
 };
-
 export default FullscreenVideo;
