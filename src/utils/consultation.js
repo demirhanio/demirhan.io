@@ -1,3 +1,3 @@
 export const handleConsultationClick = () => {
-  window.open('https://calendly.com/cosku-demirhan', '_blank');
+  window.open('https://calendar.app.google/nw1FMkg7jXr1B2qUA', '_blank');
 };
